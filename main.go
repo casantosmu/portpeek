@@ -25,15 +25,16 @@ func main() {
 		port = "8080"
 	}
 
+	clientIPHeader := strings.TrimSpace(os.Getenv("CLIENT_IP_HEADER"))
 	dialer := &net.Dialer{}
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /health", healthHandler())
-	mux.HandleFunc("GET /v1/check", checkHandler(apiKey, dialer))
+	mux.HandleFunc("GET /v1/check", checkHandler(apiKey, clientIPHeader, dialer))
 
 	httpServer := &http.Server{
 		Addr:              fmt.Sprintf(":%s", port),
-		Handler:           requestLogger(mux),
+		Handler:           requestLogger(mux, clientIPHeader),
 		ReadHeaderTimeout: 5 * time.Second,
 		ReadTimeout:       10 * time.Second,
 		WriteTimeout:      10 * time.Second,
@@ -52,7 +53,7 @@ func healthHandler() http.HandlerFunc {
 	}
 }
 
-func checkHandler(apiKey string, dialer *net.Dialer) http.HandlerFunc {
+func checkHandler(apiKey string, clientIPHeader string, dialer *net.Dialer) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		providedKey := r.Header.Get("X-API-Key")
 		if subtle.ConstantTimeCompare([]byte(providedKey), []byte(apiKey)) != 1 {
@@ -63,8 +64,8 @@ func checkHandler(apiKey string, dialer *net.Dialer) http.HandlerFunc {
 		host := strings.TrimSpace(r.URL.Query().Get("host"))
 		port := strings.TrimSpace(r.URL.Query().Get("port"))
 
-		if host == "" || port == "" {
-			writeText(w, http.StatusBadRequest, "HOST_AND_PORT_REQUIRED")
+		if port == "" {
+			writeText(w, http.StatusBadRequest, "PORT_REQUIRED")
 			return
 		}
 
@@ -72,6 +73,10 @@ func checkHandler(apiKey string, dialer *net.Dialer) http.HandlerFunc {
 		if err != nil || portInt < 1 || portInt > 65535 {
 			writeText(w, http.StatusBadRequest, "INVALID_PORT")
 			return
+		}
+
+		if host == "" {
+			host = getClientIP(r, clientIPHeader)
 		}
 
 		ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
@@ -99,10 +104,20 @@ func writeText(w http.ResponseWriter, statusCode int, value string) {
 	}
 }
 
-func requestLogger(next http.Handler) http.Handler {
+func getClientIP(r *http.Request, header string) string {
+	if header != "" {
+		return strings.TrimSpace(r.Header.Get(header))
+	}
+	return r.RemoteAddr
+}
+
+func requestLogger(next http.Handler, clientIPHeader string) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		startedAt := time.Now()
 		next.ServeHTTP(w, r)
-		log.Printf("method=%s path=%s duration=%s remote=%s", r.Method, r.URL.Path, time.Since(startedAt), r.RemoteAddr)
+		log.Printf(
+			"method=%s path=%q duration_ms=%d ip=%q",
+			r.Method, r.URL.Path, time.Since(startedAt).Milliseconds(), getClientIP(r, clientIPHeader),
+		)
 	})
 }
