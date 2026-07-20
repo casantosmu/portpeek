@@ -26,15 +26,17 @@ func main() {
 	}
 
 	clientIPHeader := strings.TrimSpace(os.Getenv("CLIENT_IP_HEADER"))
-	dialer := &net.Dialer{}
+
+	authRequests := authMiddleware(apiKey)
+	logRequests := logMiddleware(clientIPHeader)
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("GET /health", healthHandler())
-	mux.HandleFunc("GET /v1/check", checkHandler(apiKey, clientIPHeader, dialer))
+	mux.Handle("GET /health", healthHandler())
+	mux.Handle("GET /v1/check", authRequests(checkHandler(clientIPHeader, &net.Dialer{})))
 
 	httpServer := &http.Server{
 		Addr:              fmt.Sprintf(":%s", port),
-		Handler:           requestLogger(mux, clientIPHeader),
+		Handler:           logRequests(mux),
 		ReadHeaderTimeout: 5 * time.Second,
 		ReadTimeout:       10 * time.Second,
 		WriteTimeout:      10 * time.Second,
@@ -53,14 +55,8 @@ func healthHandler() http.HandlerFunc {
 	}
 }
 
-func checkHandler(apiKey string, clientIPHeader string, dialer *net.Dialer) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		providedKey := r.Header.Get("X-API-Key")
-		if subtle.ConstantTimeCompare([]byte(providedKey), []byte(apiKey)) != 1 {
-			writeText(w, http.StatusUnauthorized, "UNAUTHORIZED")
-			return
-		}
-
+func checkHandler(clientIPHeader string, dialer *net.Dialer) http.HandlerFunc {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		host := strings.TrimSpace(r.URL.Query().Get("host"))
 		port := strings.TrimSpace(r.URL.Query().Get("port"))
 
@@ -92,6 +88,33 @@ func checkHandler(apiKey string, clientIPHeader string, dialer *net.Dialer) http
 		defer conn.Close()
 
 		writeText(w, http.StatusOK, "OPEN")
+	})
+}
+
+func authMiddleware(apiKey string) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			providedKey := r.Header.Get("X-API-Key")
+			if subtle.ConstantTimeCompare([]byte(providedKey), []byte(apiKey)) != 1 {
+				writeText(w, http.StatusUnauthorized, "UNAUTHORIZED")
+				return
+			}
+
+			next.ServeHTTP(w, r)
+		})
+	}
+}
+
+func logMiddleware(clientIPHeader string) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			startedAt := time.Now()
+			next.ServeHTTP(w, r)
+			log.Printf(
+				"method=%s path=%q duration_ms=%d ip=%q",
+				r.Method, r.URL.Path, time.Since(startedAt).Milliseconds(), getClientIP(r, clientIPHeader),
+			)
+		})
 	}
 }
 
@@ -129,15 +152,4 @@ func getClientIP(r *http.Request, header string) string {
 	}
 
 	return ip.String()
-}
-
-func requestLogger(next http.Handler, clientIPHeader string) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		startedAt := time.Now()
-		next.ServeHTTP(w, r)
-		log.Printf(
-			"method=%s path=%q duration_ms=%d ip=%q",
-			r.Method, r.URL.Path, time.Since(startedAt).Milliseconds(), getClientIP(r, clientIPHeader),
-		)
-	})
 }
