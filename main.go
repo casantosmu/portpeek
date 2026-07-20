@@ -106,9 +106,29 @@ func writeText(w http.ResponseWriter, statusCode int, value string) {
 
 func getClientIP(r *http.Request, header string) string {
 	if header != "" {
-		return strings.TrimSpace(r.Header.Get(header))
+		value := strings.TrimSpace(r.Header.Get(header))
+		ip := net.ParseIP(value)
+
+		if ip == nil {
+			return ""
+		}
+
+		return ip.String()
 	}
-	return r.RemoteAddr
+
+	remoteAddr := strings.TrimSpace(r.RemoteAddr)
+
+	host, _, err := net.SplitHostPort(remoteAddr)
+	if err != nil {
+		host = remoteAddr
+	}
+
+	ip := net.ParseIP(host)
+	if ip == nil {
+		return ""
+	}
+
+	return ip.String()
 }
 
 func requestLogger(next http.Handler, clientIPHeader string) http.Handler {
