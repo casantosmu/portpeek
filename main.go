@@ -57,7 +57,7 @@ func healthHandler() http.HandlerFunc {
 
 func checkHandler(clientIPHeader string, dialer *net.Dialer) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		host := strings.TrimSpace(r.URL.Query().Get("host"))
+		host := getClientIP(r, clientIPHeader)
 		port := strings.TrimSpace(r.URL.Query().Get("port"))
 
 		if port == "" {
@@ -69,10 +69,6 @@ func checkHandler(clientIPHeader string, dialer *net.Dialer) http.HandlerFunc {
 		if err != nil || portInt < 1 || portInt > 65535 {
 			writeText(w, http.StatusBadRequest, "INVALID_PORT")
 			return
-		}
-
-		if host == "" {
-			host = getClientIP(r, clientIPHeader)
 		}
 
 		ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
@@ -128,28 +124,5 @@ func writeText(w http.ResponseWriter, statusCode int, value string) {
 }
 
 func getClientIP(r *http.Request, header string) string {
-	if header != "" {
-		value := strings.TrimSpace(r.Header.Get(header))
-		ip := net.ParseIP(value)
-
-		if ip == nil {
-			return ""
-		}
-
-		return ip.String()
-	}
-
-	remoteAddr := strings.TrimSpace(r.RemoteAddr)
-
-	host, _, err := net.SplitHostPort(remoteAddr)
-	if err != nil {
-		host = remoteAddr
-	}
-
-	ip := net.ParseIP(host)
-	if ip == nil {
-		return ""
-	}
-
-	return ip.String()
+	return strings.TrimSpace(r.Header.Get(header))
 }
