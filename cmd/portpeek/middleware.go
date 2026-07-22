@@ -23,14 +23,14 @@ func authMiddleware(apiKey string) middleware {
 	}
 }
 
-func logMiddleware(clientIPHeader string) middleware {
+func logMiddleware(realIPHeader string) middleware {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			startedAt := time.Now()
 			next.ServeHTTP(w, r)
 			log.Printf(
 				"method=%s path=%q duration_ms=%d ip=%q",
-				r.Method, r.URL.Path, time.Since(startedAt).Milliseconds(), getClientIP(r, clientIPHeader),
+				r.Method, r.URL.Path, time.Since(startedAt).Milliseconds(), getClientIP(r, realIPHeader),
 			)
 		})
 	}

@@ -9,11 +9,11 @@ import (
 
 func newServer(config config) *http.Server {
 	authRequests := authMiddleware(config.apiKey)
-	logRequests := logMiddleware(config.clientIPHeader)
+	logRequests := logMiddleware(config.realIPHeader)
 
 	mux := http.NewServeMux()
 	mux.Handle("GET /health", healthHandler())
-	mux.Handle("GET /v1/check", authRequests(checkHandler(config.clientIPHeader, &net.Dialer{})))
+	mux.Handle("GET /v1/check", authRequests(checkHandler(config.realIPHeader, &net.Dialer{})))
 
 	return &http.Server{
 		Addr:              fmt.Sprintf(":%s", config.port),

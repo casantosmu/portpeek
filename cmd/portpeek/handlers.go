@@ -15,9 +15,9 @@ func healthHandler() http.HandlerFunc {
 	}
 }
 
-func checkHandler(clientIPHeader string, dialer *net.Dialer) http.HandlerFunc {
+func checkHandler(realIPHeader string, dialer *net.Dialer) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		host := getClientIP(r, clientIPHeader)
+		host := getClientIP(r, realIPHeader)
 		port := strings.TrimSpace(r.URL.Query().Get("port"))
 
 		if port == "" {
