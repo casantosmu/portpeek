@@ -9,13 +9,13 @@ import (
 	"time"
 )
 
-func healthHandler() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
+func healthHandler() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		writeText(w, http.StatusOK, "OK")
-	}
+	})
 }
 
-func checkHandler(realIPHeader string, dialer *net.Dialer) http.HandlerFunc {
+func checkHandler(realIPHeader string, dialer *net.Dialer) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		host := getClientIP(r, realIPHeader)
 		port := strings.TrimSpace(r.URL.Query().Get("port"))
