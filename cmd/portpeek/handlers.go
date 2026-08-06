@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"log"
 	"net"
 	"net/http"
 	"strconv"
@@ -38,6 +39,7 @@ func checkHandler(realIPHeader string, dialer *net.Dialer) http.Handler {
 
 		conn, err := dialer.DialContext(ctx, "tcp", address)
 		if err != nil {
+			log.Printf("failed to dial address=%q: %v", address, err)
 			writeText(w, http.StatusOK, "CLOSED")
 			return
 		}
