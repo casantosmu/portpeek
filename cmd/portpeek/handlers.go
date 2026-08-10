@@ -12,7 +12,7 @@ import (
 
 func healthHandler() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		writeText(w, http.StatusOK, "OK")
+		writeText(w, r, http.StatusOK, "OK")
 	})
 }
 
@@ -22,13 +22,13 @@ func checkHandler(realIPHeader string, dialer *net.Dialer) http.Handler {
 		port := strings.TrimSpace(r.URL.Query().Get("port"))
 
 		if port == "" {
-			writeText(w, http.StatusBadRequest, "PORT_REQUIRED")
+			writeText(w, r, http.StatusBadRequest, "PORT_REQUIRED")
 			return
 		}
 
 		portInt, err := strconv.Atoi(port)
 		if err != nil || portInt < 1 || portInt > 65535 {
-			writeText(w, http.StatusBadRequest, "INVALID_PORT")
+			writeText(w, r, http.StatusBadRequest, "INVALID_PORT")
 			return
 		}
 
@@ -40,11 +40,11 @@ func checkHandler(realIPHeader string, dialer *net.Dialer) http.Handler {
 		conn, err := dialer.DialContext(ctx, "tcp", address)
 		if err != nil {
 			log.Printf("failed to dial address=%q: %v", address, err)
-			writeText(w, http.StatusOK, "CLOSED")
+			writeText(w, r, http.StatusOK, "CLOSED")
 			return
 		}
 		defer conn.Close()
 
-		writeText(w, http.StatusOK, "OPEN")
+		writeText(w, r, http.StatusOK, "OPEN")
 	})
 }

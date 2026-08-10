@@ -14,7 +14,7 @@ func authMiddleware(apiKey string) middleware {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			providedKey := r.Header.Get("X-API-Key")
 			if subtle.ConstantTimeCompare([]byte(providedKey), []byte(apiKey)) != 1 {
-				writeText(w, http.StatusUnauthorized, "UNAUTHORIZED")
+				writeText(w, r, http.StatusUnauthorized, "UNAUTHORIZED")
 				return
 			}
 
