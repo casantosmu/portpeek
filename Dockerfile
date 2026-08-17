@@ -4,8 +4,7 @@ COPY go.mod ./
 COPY cmd ./cmd
 RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /portpeek ./cmd/portpeek
 
-FROM gcr.io/distroless/static-debian12:nonroot
+FROM gcr.io/distroless/static-debian13:nonroot
 COPY --from=build /portpeek /portpeek
 EXPOSE 8080
-USER nonroot:nonroot
 ENTRYPOINT ["/portpeek"]
