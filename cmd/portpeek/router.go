@@ -17,6 +17,7 @@ func NewRouter(config RouterConfig) http.Handler {
 	mux := http.NewServeMux()
 	mux.Handle("GET /health", healthHandler())
 	mux.Handle("GET /v1/check", authRequests(checkHandler(config.RealIPHeader, &net.Dialer{})))
+	mux.Handle("/", notFoundHandler())
 
 	return logRequests(mux)
 }

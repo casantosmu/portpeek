@@ -16,6 +16,12 @@ func healthHandler() http.Handler {
 	})
 }
 
+func notFoundHandler() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		writeText(w, r, http.StatusNotFound, "NOT_FOUND")
+	})
+}
+
 func checkHandler(realIPHeader string, dialer *net.Dialer) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		host := getClientIP(r, realIPHeader)
