@@ -7,6 +7,20 @@ import (
 	"time"
 )
 
+type responseWriter struct {
+	http.ResponseWriter
+	statusCode int
+}
+
+func (w *responseWriter) WriteHeader(statusCode int) {
+	w.statusCode = statusCode
+	w.ResponseWriter.WriteHeader(statusCode)
+}
+
+func (w *responseWriter) Write(data []byte) (int, error) {
+	return w.ResponseWriter.Write(data)
+}
+
 type middleware func(http.Handler) http.Handler
 
 func authMiddleware(apiKey string) middleware {
@@ -31,11 +45,17 @@ func logMiddleware(realIPHeader string) middleware {
 				return
 			}
 
-			startedAt := time.Now()
-			next.ServeHTTP(w, r)
+			start := time.Now()
+
+			rw := &responseWriter{
+				ResponseWriter: w,
+				statusCode:     http.StatusOK,
+			}
+			next.ServeHTTP(rw, r)
+
 			log.Printf(
-				"method=%s path=%q duration_ms=%d ip=%q",
-				r.Method, r.URL.Path, time.Since(startedAt).Milliseconds(), getClientIP(r, realIPHeader),
+				"http request method=%s route=%s status_code=%d duration_ms=%d client_ip=%q",
+				r.Method, r.Pattern, rw.statusCode, time.Since(start).Milliseconds(), getClientIP(r, realIPHeader),
 			)
 		})
 	}

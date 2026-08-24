@@ -7,10 +7,6 @@ import (
 )
 
 func writeText(w http.ResponseWriter, r *http.Request, statusCode int, value string) {
-	if r.URL.Path != "/health" {
-		log.Printf("status=%d", statusCode)
-	}
-
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	w.WriteHeader(statusCode)
 
