@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"log"
+	"log/slog"
 	"net/http"
 )
 
@@ -11,6 +11,6 @@ func writeText(w http.ResponseWriter, statusCode int, value string) {
 	w.WriteHeader(statusCode)
 
 	if _, err := fmt.Fprintln(w, value); err != nil {
-		log.Printf("failed to write response: %v", err)
+		slog.Error("failed to write response", "error", err)
 	}
 }

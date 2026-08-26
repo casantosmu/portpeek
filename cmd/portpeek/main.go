@@ -1,17 +1,18 @@
 package main
 
 import (
-	"errors"
 	"fmt"
-	"log"
+	"log/slog"
 	"net/http"
+	"os"
 	"time"
 )
 
 func main() {
-	cfg, err := loadConfig()
+	cfg, err := setup()
 	if err != nil {
-		log.Fatalf("failed to load config: %v", err)
+		slog.Error("failed to load config", "error", err)
+		os.Exit(1)
 	}
 
 	router := NewRouter(RouterConfig{
@@ -28,10 +29,10 @@ func main() {
 		IdleTimeout:       60 * time.Second,
 	}
 
-	log.Printf("PortPeek listening on %s", cfg.port)
+	slog.Info("portpeek listening", "port", cfg.port)
 
-	if err := server.ListenAndServe(); err != nil &&
-		!errors.Is(err, http.ErrServerClosed) {
-		log.Fatalf("server failed: %v", err)
+	if err := server.ListenAndServe(); err != nil {
+		slog.Error("server failed", "error", err)
+		os.Exit(1)
 	}
 }

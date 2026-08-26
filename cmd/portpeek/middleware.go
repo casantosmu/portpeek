@@ -2,7 +2,7 @@ package main
 
 import (
 	"crypto/subtle"
-	"log"
+	"log/slog"
 	"net/http"
 	"time"
 )
@@ -53,9 +53,13 @@ func logMiddleware(realIPHeader string) middleware {
 			}
 			next.ServeHTTP(rw, r)
 
-			log.Printf(
-				"http request method=%s route=%s status_code=%d duration_ms=%d client_ip=%q",
-				r.Method, r.Pattern, rw.statusCode, time.Since(start).Milliseconds(), getClientIP(r, realIPHeader),
+			slog.Info(
+				"http request",
+				"method", r.Method,
+				"route", r.Pattern,
+				"status_code", rw.statusCode,
+				"duration_ms", time.Since(start).Milliseconds(),
+				"client_ip", getClientIP(r, realIPHeader),
 			)
 		})
 	}

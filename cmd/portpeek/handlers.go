@@ -1,7 +1,7 @@
 package main
 
 import (
-	"log"
+	"log/slog"
 	"net"
 	"net/http"
 	"strconv"
@@ -45,7 +45,7 @@ func checkHandler(realIPHeader string) http.Handler {
 
 		conn, err := dialer.DialContext(r.Context(), "tcp", address)
 		if err != nil {
-			log.Printf("failed to dial address=%q: %v", address, err)
+			slog.Info("failed to dial", "address", address, "error", err)
 			writeText(w, http.StatusOK, "CLOSED")
 			return
 		}
