@@ -13,14 +13,22 @@ type config struct {
 }
 
 func loadConfig() (config, error) {
+	var missing []string
+
 	apiKey := strings.TrimSpace(os.Getenv("API_KEY"))
 	if apiKey == "" {
-		return config{}, errors.New("API_KEY environment variable is required")
+		missing = append(missing, "API_KEY")
 	}
 
 	realIPHeader := strings.TrimSpace(os.Getenv("REAL_IP_HEADER"))
 	if realIPHeader == "" {
-		return config{}, errors.New("REAL_IP_HEADER environment variable is required")
+		missing = append(missing, "REAL_IP_HEADER")
+	}
+
+	if len(missing) > 0 {
+		return config{}, errors.New(
+			"missing required environment variable(s): " + strings.Join(missing, ", "),
+		)
 	}
 
 	port := strings.TrimSpace(os.Getenv("PORT"))
