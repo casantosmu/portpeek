@@ -7,28 +7,28 @@ import (
 	"time"
 )
 
-type responseWriter struct {
+type statusRecorder struct {
 	http.ResponseWriter
 	statusCode int
 }
 
-func (w *responseWriter) WriteHeader(statusCode int) {
+func (w *statusRecorder) WriteHeader(statusCode int) {
 	w.statusCode = statusCode
 	w.ResponseWriter.WriteHeader(statusCode)
 }
 
-func (w *responseWriter) Write(data []byte) (int, error) {
+func (w *statusRecorder) Write(data []byte) (int, error) {
 	return w.ResponseWriter.Write(data)
 }
 
 type middleware func(http.Handler) http.Handler
 
-func authMiddleware(apiKey string) middleware {
+func authMiddleware(apiKey string, resWriter responseWriter) middleware {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			providedKey := r.Header.Get("X-API-Key")
 			if subtle.ConstantTimeCompare([]byte(providedKey), []byte(apiKey)) != 1 {
-				writeText(w, http.StatusUnauthorized, "UNAUTHORIZED")
+				resWriter.text(w, http.StatusUnauthorized, "UNAUTHORIZED")
 				return
 			}
 
@@ -37,7 +37,7 @@ func authMiddleware(apiKey string) middleware {
 	}
 }
 
-func logMiddleware(realIPHeader string) middleware {
+func logMiddleware(reqInfo requestInfo) middleware {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if r.URL.Path == "/health" {
@@ -47,7 +47,7 @@ func logMiddleware(realIPHeader string) middleware {
 
 			start := time.Now()
 
-			rw := &responseWriter{
+			rw := &statusRecorder{
 				ResponseWriter: w,
 				statusCode:     http.StatusOK,
 			}
@@ -59,7 +59,7 @@ func logMiddleware(realIPHeader string) middleware {
 				"route", r.Pattern,
 				"status_code", rw.statusCode,
 				"duration_ms", time.Since(start).Milliseconds(),
-				"client_ip", getClientIP(r, realIPHeader),
+				"client_ip", reqInfo.clientIP(r),
 			)
 		})
 	}

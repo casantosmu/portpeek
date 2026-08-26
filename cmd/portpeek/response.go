@@ -6,7 +6,9 @@ import (
 	"net/http"
 )
 
-func writeText(w http.ResponseWriter, statusCode int, value string) {
+type responseWriter struct{}
+
+func (rw responseWriter) text(w http.ResponseWriter, statusCode int, value string) {
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	w.WriteHeader(statusCode)
 

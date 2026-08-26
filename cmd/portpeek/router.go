@@ -10,13 +10,16 @@ type RouterConfig struct {
 }
 
 func NewRouter(config RouterConfig) http.Handler {
-	authRequests := authMiddleware(config.APIKey)
-	logRequests := logMiddleware(config.RealIPHeader)
+	reqInfo := requestInfo{realIPHeader: config.RealIPHeader}
+	resWriter := responseWriter{}
+
+	authRequests := authMiddleware(config.APIKey, resWriter)
+	logRequests := logMiddleware(reqInfo)
 
 	mux := http.NewServeMux()
-	mux.Handle("GET /health", healthHandler())
-	mux.Handle("GET /v1/check", authRequests(checkHandler(config.RealIPHeader)))
-	mux.Handle("/", notFoundHandler())
+	mux.Handle("GET /health", healthHandler(resWriter))
+	mux.Handle("GET /v1/check", authRequests(checkHandler(reqInfo, resWriter)))
+	mux.Handle("/", notFoundHandler(resWriter))
 
 	return logRequests(mux)
 }
