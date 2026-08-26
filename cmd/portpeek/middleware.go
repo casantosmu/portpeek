@@ -37,7 +37,7 @@ func authMiddleware(apiKey string, resWriter responseWriter) middleware {
 	}
 }
 
-func logMiddleware(reqInfo requestInfo) middleware {
+func logMiddleware(logger *slog.Logger, reqInfo requestInfo) middleware {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if r.URL.Path == "/health" {
@@ -53,7 +53,7 @@ func logMiddleware(reqInfo requestInfo) middleware {
 			}
 			next.ServeHTTP(rw, r)
 
-			slog.Info(
+			logger.Info(
 				"http request",
 				"method", r.Method,
 				"route", r.Pattern,

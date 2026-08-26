@@ -21,7 +21,7 @@ func notFoundHandler(resWriter responseWriter) http.Handler {
 	})
 }
 
-func checkHandler(reqInfo requestInfo, resWriter responseWriter) http.Handler {
+func checkHandler(logger *slog.Logger, reqInfo requestInfo, resWriter responseWriter) http.Handler {
 	dialer := net.Dialer{
 		Timeout: 3 * time.Second,
 	}
@@ -45,7 +45,7 @@ func checkHandler(reqInfo requestInfo, resWriter responseWriter) http.Handler {
 
 		conn, err := dialer.DialContext(r.Context(), "tcp", address)
 		if err != nil {
-			slog.Info("failed to dial", "address", address, "error", err)
+			logger.Info("failed to dial", "address", address, "error", err)
 			resWriter.text(w, http.StatusOK, "CLOSED")
 			return
 		}

@@ -2,22 +2,24 @@ package main
 
 import (
 	"fmt"
-	"log/slog"
 	"net/http"
 	"os"
 	"time"
 )
 
 func main() {
-	cfg, err := setup()
+	logger := newLogger(os.Getenv("LOG_FORMAT"))
+
+	cfg, err := loadConfig()
 	if err != nil {
-		slog.Error("failed to load config", "error", err)
+		logger.Error("failed to load config", "error", err)
 		os.Exit(1)
 	}
 
 	router := NewRouter(RouterConfig{
 		APIKey:       cfg.apiKey,
 		RealIPHeader: cfg.realIPHeader,
+		Logger:       logger,
 	})
 
 	server := &http.Server{
@@ -29,10 +31,10 @@ func main() {
 		IdleTimeout:       60 * time.Second,
 	}
 
-	slog.Info("portpeek listening", "port", cfg.port)
+	logger.Info("portpeek listening", "port", cfg.port)
 
 	if err := server.ListenAndServe(); err != nil {
-		slog.Error("server failed", "error", err)
+		logger.Error("server failed", "error", err)
 		os.Exit(1)
 	}
 }

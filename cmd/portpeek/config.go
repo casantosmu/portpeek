@@ -2,7 +2,6 @@ package main
 
 import (
 	"errors"
-	"log/slog"
 	"os"
 	"strings"
 )
@@ -13,13 +12,7 @@ type config struct {
 	realIPHeader string
 }
 
-func setup() (config, error) {
-	if strings.EqualFold(strings.TrimSpace(os.Getenv("LOG_FORMAT")), "json") {
-		slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stderr, nil)))
-	} else {
-		slog.SetDefault(slog.New(slog.NewTextHandler(os.Stderr, nil)))
-	}
-
+func loadConfig() (config, error) {
 	var missing []string
 
 	apiKey := strings.TrimSpace(os.Getenv("API_KEY"))
