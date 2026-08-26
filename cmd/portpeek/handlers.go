@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"log"
 	"net"
 	"net/http"
@@ -12,45 +11,46 @@ import (
 
 func healthHandler() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		writeText(w, r, http.StatusOK, "OK")
+		writeText(w, http.StatusOK, "OK")
 	})
 }
 
 func notFoundHandler() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		writeText(w, r, http.StatusNotFound, "NOT_FOUND")
+		writeText(w, http.StatusNotFound, "NOT_FOUND")
 	})
 }
 
-func checkHandler(realIPHeader string, dialer *net.Dialer) http.Handler {
+func checkHandler(realIPHeader string) http.Handler {
+	dialer := net.Dialer{
+		Timeout: 3 * time.Second,
+	}
+
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		host := getClientIP(r, realIPHeader)
 		port := strings.TrimSpace(r.URL.Query().Get("port"))
 
 		if port == "" {
-			writeText(w, r, http.StatusBadRequest, "PORT_REQUIRED")
+			writeText(w, http.StatusBadRequest, "PORT_REQUIRED")
 			return
 		}
 
 		portInt, err := strconv.Atoi(port)
 		if err != nil || portInt < 1 || portInt > 65535 {
-			writeText(w, r, http.StatusBadRequest, "INVALID_PORT")
+			writeText(w, http.StatusBadRequest, "INVALID_PORT")
 			return
 		}
 
-		ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
-		defer cancel()
-
 		address := net.JoinHostPort(host, port)
 
-		conn, err := dialer.DialContext(ctx, "tcp", address)
+		conn, err := dialer.DialContext(r.Context(), "tcp", address)
 		if err != nil {
 			log.Printf("failed to dial address=%q: %v", address, err)
-			writeText(w, r, http.StatusOK, "CLOSED")
+			writeText(w, http.StatusOK, "CLOSED")
 			return
 		}
 		defer conn.Close()
 
-		writeText(w, r, http.StatusOK, "OPEN")
+		writeText(w, http.StatusOK, "OPEN")
 	})
 }
